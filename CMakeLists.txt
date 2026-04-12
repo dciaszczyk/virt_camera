@@ -1,26 +1,50 @@
 cmake_minimum_required(VERSION 3.19)
 project(virt_camera LANGUAGES CXX)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+
+
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui OpenGLWidgets)
 
 qt_standard_project_setup()
 
 qt_add_executable(virt_camera
     WIN32 MACOSX_BUNDLE
     main.cpp
-    window.cpp
-    window.h
-    window.ui
-    RhiWidget.h RhiWidget.cpp
+    window.h window.cpp
+    GLWidget.h GLWidget.cpp
+    model.txt
+    mesh.h
+    mesh_loader.h
+    math3d.h math3d.cpp
     camera.h camera.cpp
-    mesh.h mesh.cpp
+    mesh.frag mesh.vert
+    input.h
+    renderer.h renderer.cpp
+
+
 )
+
+configure_file(${CMAKE_SOURCE_DIR}/model.txt
+               ${CMAKE_BINARY_DIR}/model.txt
+               COPYONLY)
+
+ configure_file(${CMAKE_SOURCE_DIR}/mesh.frag
+               ${CMAKE_BINARY_DIR}/mesh.frag
+               COPYONLY)
+
+ configure_file(${CMAKE_SOURCE_DIR}/mesh.vert
+              ${CMAKE_BINARY_DIR}/mesh.vert
+              COPYONLY)
 
 target_link_libraries(virt_camera
     PRIVATE
         Qt::Core
         Qt::Widgets
         Qt6::Gui
+        Qt6::OpenGLWidgets
 )
 
 include(GNUInstallDirs)

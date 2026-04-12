@@ -1,24 +1,49 @@
 #pragma once
-#include <QRhiWidget>
-#include "camera.h"
-#include "mesh.h"
 
-class RhiWidget : public QRhiWidget
+#include <QOpenGLWidget>
+#include <QOpenGLFunctions>
+#include <QMouseEvent>
+#include <QPoint>
+#include <QTimer>
+
+#include "camera.h"
+#include "input.h"
+#include "renderer.h"
+
+class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
+    Q_OBJECT
+
+public:
+    explicit GLWidget(QWidget* parent = nullptr);
+    ~GLWidget();
+
 protected:
-    void initialize() override;
-    void render(QRhiCommandBuffer* cb) override;
+    void initializeGL() override;
+    void paintGL() override;
+    void resizeGL(int w, int h) override;
+
+    void keyPressEvent(QKeyEvent* e) override;
+    void keyReleaseEvent(QKeyEvent* e) override;
+    void mousePressEvent(QMouseEvent* e) override;
+    void mouseMoveEvent(QMouseEvent* e) override;
 
 private:
-    // GPU resources (Qt-managed lifetime)
-    QRhiBuffer* vbuf = nullptr;
-    QRhiBuffer* ibuf = nullptr;
-    QRhiBuffer* ubuf = nullptr;
+    void updateCamera(float dt);
+    void captureMouse();
+    void releaseMouse();
 
-    QRhiGraphicsPipeline* pipeline = nullptr;
-    QRhiShaderResourceBindings* srb = nullptr;
+private:
+    QTimer* updateTimer;
+    bool keys[KeyAction::COUNT] = {false};
+    bool mouseCaptured = false;
+    QPoint lastMousePos;
 
-    // Your data
     Camera camera;
-    Mesh mesh;
+
+    Renderer renderer;
+
+    float mouseSensitivity = 0.05f;
+    float moveSpeed = 2.0f;
+    float rotSpeed = 60.0f;
 };

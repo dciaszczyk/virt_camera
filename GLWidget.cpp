@@ -1,71 +1,208 @@
-void RhiWidget::initialize()
+#include "GLWidget.h"
+#include <QCursor>
+#include <QGuiApplication>
+#include <QDebug>
+
+GLWidget::GLWidget(QWidget* parent)
+    : QOpenGLWidget(parent)
+    , mouseCaptured(false)
 {
-    QRhi* r = rhi();
+    setFocusPolicy(Qt::StrongFocus);
+    setMouseTracking(true);
 
-    // --- Buffers ---
-    vbuf = r->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, SIZE);
-    vbuf->create();
+    camera.transform = identityMat4();
 
-    ibuf = r->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::IndexBuffer, SIZE);
-    ibuf->create();
+    // initial position
+    camera.transform.m[12] = 0;
+    camera.transform.m[13] = 0;
+    camera.transform.m[14] = 10;
 
-    ubuf = r->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, 64);
-    ubuf->create();
-
-    // --- Shader bindings ---
-    srb = r->newShaderResourceBindings();
-    srb->setBindings({
-        QRhiShaderResourceBinding::uniformBuffer(
-            0,
-            QRhiShaderResourceBinding::VertexStage,
-            ubuf)
+    updateTimer = new QTimer(this);
+    connect(updateTimer, &QTimer::timeout, this, [this]() {
+        update();
     });
-    srb->create();
-
-    // --- Pipeline ---
-    pipeline = r->newGraphicsPipeline();
-    pipeline->setTopology(QRhiGraphicsPipeline::Lines);
-
-    // shaders (.qsb required)
-    pipeline->setShaderStages({
-        { QRhiShaderStage::Vertex, loadVertexShader() },
-        { QRhiShaderStage::Fragment, loadFragmentShader() }
-    });
-
-    pipeline->setShaderResourceBindings(srb);
-    pipeline->setRenderPassDescriptor(renderTarget()->renderPassDescriptor());
-
-    pipeline->create();
-
-    // --- Load mesh (your code) ---
-    mesh = MeshLoader::loadFromFile("model.txt");
-
-    // Upload mesh → buffers (you define how)
+    updateTimer->start(16);
 }
 
-void RhiWidget::render(QRhiCommandBuffer* cb)
+GLWidget::~GLWidget()
 {
-    // --- YOUR CAMERA + MATH ---
-    auto view = camera.getViewMatrix();
-    auto proj = camera.getProjectionMatrix();
-    auto model = mesh.getModelMatrix();
+    makeCurrent();
+    renderer.cleanup();
+    doneCurrent();
+}
 
-    auto mvp = proj * view * model;
+void GLWidget::initializeGL()
+{
+    initializeOpenGLFunctions();
 
-    // --- Upload MVP to uniform buffer ---
-    // (write raw bytes of Mat4 into ubuf)
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
 
-    // --- Issue draw ---
-    cb->setGraphicsPipeline(pipeline);
-    cb->setShaderResources();
+    if (!renderer.initialize()) {
+        qDebug() << "Failed to initialize renderer";
+        return;
+    }
 
-    const QRhiCommandBuffer::VertexInput vInput(vbuf, 0);
+    // initial position
+    camera.transform.m[12] = 0;
+    camera.transform.m[13] = 0;
+    camera.transform.m[14] = 10;
+}
 
-    cb->setVertexInput(
-        0, 1, &vInput,
-        ibuf, 0,
-        QRhiCommandBuffer::IndexUInt32
-        );
+void GLWidget::paintGL()
+{
+    updateCamera(0.016f);
+    renderer.render(camera, width(), height());
+}
 
-    cb->drawIndexed(mesh.indexCount());
+void GLWidget::resizeGL(int w, int h)
+{
+    glViewport(0, 0, w, h);
+}
+
+void GLWidget::keyPressEvent(QKeyEvent* e)
+{
+    if (e->key() == Qt::Key_Escape)
+    {
+        mouseCaptured = false;
+        releaseMouse();
+        releaseKeyboard();
+        setCursor(Qt::ArrowCursor);
+        return;
+    }
+
+    auto it = DEFAULT_KEY_BINDINGS.find(e->key());
+    if (it != DEFAULT_KEY_BINDINGS.end()) {
+        KeyAction action = it->second;
+
+        switch (action) {
+        case SCREENSHOT:
+        {
+            QImage img = grabFramebuffer();
+            img.save("screenshot.png");
+            break;
+        }
+
+        case SNAP_POSITION:
+            camera.snapPosition();
+            break;
+
+        case SNAP_ROTATION:
+            camera.snapRotation();
+            break;
+
+        default:
+            keys[action] = true;
+            break;
+        }
+    }
+}
+
+void GLWidget::keyReleaseEvent(QKeyEvent* e)
+{
+    auto it = DEFAULT_KEY_BINDINGS.find(e->key());
+    if (it != DEFAULT_KEY_BINDINGS.end() &&
+        it->second != SCREENSHOT &&
+        it->second != SNAP_POSITION &&
+        it->second != SNAP_ROTATION) {
+        keys[it->second] = false;
+    }
+}
+
+void GLWidget::mousePressEvent(QMouseEvent* e)
+{
+    if (e->button() == Qt::LeftButton && !mouseCaptured) {
+        mouseCaptured = true;
+        grabMouse();
+        grabKeyboard();
+        setCursor(Qt::BlankCursor);
+        lastMousePos = e->pos();
+    }
+}
+
+void GLWidget::mouseMoveEvent(QMouseEvent* e)
+{
+    if (!mouseCaptured)
+        return;
+
+    QPoint center = rect().center();
+    QPoint delta = e->pos() - center;
+
+    float yawDelta   = -delta.x() * mouseSensitivity;
+    float pitchDelta = -delta.y() * mouseSensitivity;
+
+    Vec3 up    = camera.getUp(camera.transform);
+    Vec3 right = camera.getRight(camera.transform);
+
+    Mat4 Ryaw   = rotationMatrix(up, yawDelta);
+    Mat4 Rpitch = rotationMatrix(right, pitchDelta);
+
+    camera.transform = camera.transform * Ryaw;
+    camera.transform = camera.transform * Rpitch;
+
+    QCursor::setPos(mapToGlobal(center));
+}
+
+void GLWidget::updateCamera(float dt)
+{
+    if (!mouseCaptured)
+        return;
+
+    const float rotStep = rotSpeed * dt;
+    const float moveStep = moveSpeed * dt;
+
+    // ROTATION (keyboard)
+
+    if (keys[ROLL_LEFT])
+        camera.transform = camera.transform * rotationMatrix(camera.getForward(camera.transform), rotStep);
+
+    if (keys[ROLL_RIGHT])
+        camera.transform = camera.transform * rotationMatrix(camera.getForward(camera.transform), -rotStep);
+
+    if (keys[ROTATE_UP])
+        camera.transform = camera.transform * rotationMatrix(camera.getRight(camera.transform), rotStep);
+
+    if (keys[ROTATE_DOWN])
+        camera.transform = camera.transform * rotationMatrix(camera.getRight(camera.transform), -rotStep);
+
+    if (keys[ROTATE_LEFT])
+        camera.transform = camera.transform * rotationMatrix(camera.getUp(camera.transform), rotStep);
+
+    if (keys[ROTATE_RIGHT])
+        camera.transform = camera.transform * rotationMatrix(camera.getUp(camera.transform), -rotStep);
+
+    // MOVEMENT (local → world via matrix)
+
+    Vec3 localMove{0,0,0};
+
+    if (keys[MOVE_FORWARD]) localMove.z -= moveStep;
+    if (keys[MOVE_BACK])    localMove.z += moveStep;
+    if (keys[MOVE_LEFT])    localMove.x -= moveStep;
+    if (keys[MOVE_RIGHT])   localMove.x += moveStep;
+    if (keys[MOVE_UP])      localMove.y += moveStep;
+    if (keys[MOVE_DOWN])    localMove.y -= moveStep;
+
+    Vec4 worldMove = camera.transform * Vec4{localMove.x, localMove.y, localMove.z, 0.0f};
+
+    camera.transform.m[12] += worldMove.x;
+    camera.transform.m[13] += worldMove.y;
+    camera.transform.m[14] += worldMove.z;
+}
+
+void GLWidget::captureMouse()
+{
+    mouseCaptured = true;
+    lastMousePos = mapFromGlobal(QCursor::pos());
+    setCursor(Qt::BlankCursor);
+    grabMouse();
+    grabKeyboard();
+}
+
+void GLWidget::releaseMouse()
+{
+    mouseCaptured = false;
+    QWidget::releaseMouse();
+    QWidget::releaseKeyboard();
+    setCursor(Qt::ArrowCursor);
 }

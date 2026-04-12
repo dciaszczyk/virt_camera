@@ -1,11 +1,15 @@
+#include <QApplication>
+#include <QSurfaceFormat>
 #include "window.h"
 
-#include <QGuiApplication>
-
-int main(int argc, char *argv[])
+int main(int argc, char** argv)
 {
-    QGuiApplication a(argc, argv);
-    window w;
+    QApplication app(argc, argv);
+
+    Window w;
     w.show();
-    return a.exec();
+
+    w.resize(800,600);
+
+    return app.exec();
 }
