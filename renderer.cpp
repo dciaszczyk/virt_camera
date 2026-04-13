@@ -55,6 +55,8 @@ bool Renderer::initialize()
 
     meshVao.release();
 
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // opaque black
+
     initialized = true;
     return true;
 }

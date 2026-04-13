@@ -20,26 +20,7 @@ float dot(Vec3 a, Vec3 b)
     return a.x*b.x + a.y*b.y + a.z*b.z;
 }
 
-Mat4 lookAt(Vec3 eye, Vec3 target, Vec3 up)
-{
-    Vec3 f = normalize({target.x-eye.x, target.y-eye.y, target.z-eye.z});
-    Vec3 s = normalize(cross(f, up));
-    Vec3 u = cross(s, f);
 
-    Mat4 m{};
-
-    m.m[0]=s.x; m.m[4]=s.y; m.m[8]=s.z;
-    m.m[1]=u.x; m.m[5]=u.y; m.m[9]=u.z;
-    m.m[2]=-f.x; m.m[6]=-f.y; m.m[10]=-f.z;
-
-    m.m[12]=-dot(s, eye);
-    m.m[13]=-dot(u, eye);
-    m.m[14]= dot(f, eye);
-
-    m.m[15]=1.0f;
-
-    return m;
-}
 
 Mat4 perspective(float fov, float aspect, float n, float f)
 {

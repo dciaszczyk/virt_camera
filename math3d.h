@@ -68,7 +68,6 @@ Vec3 normalize(Vec3 v);
 Vec3 cross(Vec3 a, Vec3 b);
 float dot(Vec3 a, Vec3 b);
 
-Mat4 lookAt(Vec3 eye, Vec3 target, Vec3 up);
 Mat4 perspective(float fov, float aspect, float near, float far);
 
 struct Quat {

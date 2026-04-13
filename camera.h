@@ -17,4 +17,6 @@ public:
     Vec3 getRight(const Mat4& m);
     Vec3 getUp(const Mat4& m);
     Vec3 getForward(const Mat4& m);
+
+    float fov;
 };

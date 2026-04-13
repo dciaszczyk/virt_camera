@@ -2,6 +2,8 @@
 #include <QCursor>
 #include <QGuiApplication>
 #include <QDebug>
+#include <iostream>
+
 
 GLWidget::GLWidget(QWidget* parent)
     : QOpenGLWidget(parent)
@@ -11,11 +13,6 @@ GLWidget::GLWidget(QWidget* parent)
     setMouseTracking(true);
 
     camera.transform = identityMat4();
-
-    // initial position
-    camera.transform.m[12] = 0;
-    camera.transform.m[13] = 0;
-    camera.transform.m[14] = 10;
 
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, [this]() {
@@ -44,10 +41,10 @@ void GLWidget::initializeGL()
         return;
     }
 
-    // initial position
-    camera.transform.m[12] = 0;
-    camera.transform.m[13] = 0;
+    // GPU-safe initial camera placement
+    camera.transform = identityMat4();
     camera.transform.m[14] = 10;
+    camera.fov = 60.0f;
 }
 
 void GLWidget::paintGL()
@@ -121,6 +118,10 @@ void GLWidget::mousePressEvent(QMouseEvent* e)
     }
 }
 
+void GLWidget::MouseWheelEevent(QMouseEvent* e){
+
+}
+
 void GLWidget::mouseMoveEvent(QMouseEvent* e)
 {
     if (!mouseCaptured)
@@ -142,6 +143,51 @@ void GLWidget::mouseMoveEvent(QMouseEvent* e)
     camera.transform = camera.transform * Rpitch;
 
     QCursor::setPos(mapToGlobal(center));
+}
+
+inline void printCamera(const Mat4& m)
+{
+    std::cout
+        << "POS: "
+        << m.m[12] << ", "
+        << m.m[13] << ", "
+        << m.m[14] << "\n";
+
+    std::cout
+        << "RIGHT: "
+        << m.m[0] << ", "
+        << m.m[1] << ", "
+        << m.m[2] << "\n";
+
+    std::cout
+        << "UP: "
+        << m.m[4] << ", "
+        << m.m[5] << ", "
+        << m.m[6] << "\n";
+
+    std::cout
+        << "FWD: "
+        << m.m[8] << ", "
+        << m.m[9] << ", "
+        << m.m[10] << "\n\n";
+}
+
+inline void orthonormalize(Mat4& m)
+{
+    Vec3 right = {m.m[0], m.m[1], m.m[2]};
+    Vec3 up    = {m.m[4], m.m[5], m.m[6]};
+    Vec3 fwd   = {m.m[8], m.m[9], m.m[10]};
+
+    // Gram-Schmidt
+    fwd = normalize(fwd);
+
+    right = normalize(cross(up, fwd));
+    up    = cross(fwd, right);
+
+    // write back
+    m.m[0] = right.x; m.m[1] = right.y; m.m[2] = right.z;
+    m.m[4] = up.x;    m.m[5] = up.y;    m.m[6] = up.z;
+    m.m[8] = fwd.x;   m.m[9] = fwd.y;   m.m[10]= fwd.z;
 }
 
 void GLWidget::updateCamera(float dt)
@@ -188,6 +234,10 @@ void GLWidget::updateCamera(float dt)
     camera.transform.m[12] += worldMove.x;
     camera.transform.m[13] += worldMove.y;
     camera.transform.m[14] += worldMove.z;
+
+    orthonormalize(camera.transform);
+
+    printCamera(camera.transform);
 }
 
 void GLWidget::captureMouse()
