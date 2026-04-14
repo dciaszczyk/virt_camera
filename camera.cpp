@@ -1,19 +1,15 @@
-// camera.cpp
-#include "camera.h"// camera.cpp
 #include "camera.h"
+#include "math3d.h"
 
 Mat4 Camera::getViewMatrix() const {
     Mat4 R = quatToMat4(orientation);
 
-    // Build view matrix directly (translation then rotation inverse)
     Mat4 view = R;
 
-    // Transpose rotation part (inverse for orthonormal matrix)
     std::swap(view.m[1], view.m[4]);
     std::swap(view.m[2], view.m[8]);
     std::swap(view.m[6], view.m[9]);
 
-    // Apply translation
     Vec3 r = getRight(), u = getUp(), f = getForward();
     view.m[12] = -dot(r, position);
     view.m[13] = -dot(u, position);
@@ -54,7 +50,6 @@ void Camera::snapPosition() {
 void Camera::snapRotation() {
     Vec3 forward = getForward();
 
-    // Snap forward to nearest axis
     Vec3 snappedForward;
     float absX = fabs(forward.x), absY = fabs(forward.y), absZ = fabs(forward.z);
 
@@ -65,7 +60,6 @@ void Camera::snapRotation() {
     else
         snappedForward = {0, 0, forward.z > 0 ? 1.0f : -1.0f};
 
-    // Build basis vectors
     Vec3 worldUp = {0, 1, 0};
     if (fabs(dot(snappedForward, worldUp)) > 0.99f)
         worldUp = {0, 0, 1};
@@ -73,18 +67,15 @@ void Camera::snapRotation() {
     Vec3 snappedRight = normalize(cross(worldUp, snappedForward));
     Vec3 snappedUp = cross(snappedForward, snappedRight);
 
-    // Snap roll
     Vec3 currentUp = getUp();
     float sinRoll = dot(cross(snappedUp, currentUp), snappedForward);
     float cosRoll = dot(snappedUp, currentUp);
     float roll = round(atan2(sinRoll, cosRoll) / (M_PI * 0.5f)) * (M_PI * 0.5f);
 
-    // Apply roll
     float c = cos(roll), s = sin(roll);
     Vec3 finalUp = snappedUp * c - snappedRight * s;
     Vec3 finalRight = cross(finalUp, snappedForward);
 
-    // Convert to quaternion
     Mat4 m;
     m.m[0] = finalRight.x; m.m[4] = finalUp.x; m.m[8] = snappedForward.x;
     m.m[1] = finalRight.y; m.m[5] = finalUp.y; m.m[9] = snappedForward.y;

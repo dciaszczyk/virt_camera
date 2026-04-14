@@ -22,7 +22,6 @@ enum KeyAction
     COUNT
 };
 
-// Default key bindings
 const std::unordered_map<int, KeyAction> DEFAULT_KEY_BINDINGS = {
     {Qt::Key_W, MOVE_FORWARD},
     {Qt::Key_S, MOVE_BACK},

@@ -1,6 +1,6 @@
 #include "renderer.h"
 #include <QFileInfo>
-#include <QFile>// renderer.cpp
+#include <QFile>
 #include "renderer.h"
 #include "meshLoader.h"
 #include "mesh.h"

@@ -150,7 +150,7 @@ void GLWidget::updateCamera(float dt)
     if (keys[ROTATE_RIGHT]) camera.rotate(up, -rotStep);
     if (keys[ROTATE_UP])    camera.rotate(right, rotStep);
     if (keys[ROTATE_DOWN])  camera.rotate(right, -rotStep);
-    if (keys[ROLL_LEFT])    camera.rotate(forward, +rotStep);
+    if (keys[ROLL_LEFT])    camera.rotate(forward, rotStep);
     if (keys[ROLL_RIGHT])   camera.rotate(forward, -rotStep);
 
     Vec3 move{0,0,0};

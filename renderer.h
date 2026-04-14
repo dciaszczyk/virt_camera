@@ -1,4 +1,3 @@
-#pragma o// renderer.h
 #pragma once
 #include <QOpenGLShaderProgram>
 #include <QOpenGLVertexArrayObject>

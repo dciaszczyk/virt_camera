@@ -1,13 +1,11 @@
 #pragma once
-#include "math3d.h"// camera.h
+#include "math3d.h"
 #pragma once
 #include "math3d.h"
 
 class Camera {
 public:
-    //Mat4 transform;
-
-    Vec3 position{0, 0, 10};  // Vec3 is sufficient
+    Vec3 position{0, 0, 10};
     Quat orientation{1, 0, 0, 0};
     float fov = 60.0f;
 
