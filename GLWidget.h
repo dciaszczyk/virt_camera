@@ -2,8 +2,6 @@
 
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
-#include <QMouseEvent>
-#include <QPoint>
 #include <QTimer>
 
 #include "camera.h"
@@ -26,15 +24,13 @@ protected:
     void keyPressEvent(QKeyEvent* e) override;
     void keyReleaseEvent(QKeyEvent* e) override;
     void mousePressEvent(QMouseEvent* e) override;
-    void WheelEevent(QMouseEvent* e) ;
+    void wheelEvent(QWheelEvent* e) override;
     void mouseMoveEvent(QMouseEvent* e) override;
 
 private:
     void updateCamera(float dt);
     void captureMouse();
     void releaseMouse();
-
-private:
     QTimer* updateTimer;
     bool keys[KeyAction::COUNT] = {false};
     bool mouseCaptured = false;

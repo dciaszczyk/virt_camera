@@ -1,72 +1,95 @@
+// camera.cpp
+#include "camera.h"// camera.cpp
 #include "camera.h"
-#include "math3d.h"
 
-void Camera::rotate(const Vec3& axis, float angleDeg)
-{
-    Mat4 R = rotationMatrix(axis, angleDeg);
+Mat4 Camera::getViewMatrix() const {
+    Mat4 R = quatToMat4(orientation);
 
-    transform = transform * R;  // local-space rotation
+    // Build view matrix directly (translation then rotation inverse)
+    Mat4 view = R;
+
+    // Transpose rotation part (inverse for orthonormal matrix)
+    std::swap(view.m[1], view.m[4]);
+    std::swap(view.m[2], view.m[8]);
+    std::swap(view.m[6], view.m[9]);
+
+    // Apply translation
+    Vec3 r = getRight(), u = getUp(), f = getForward();
+    view.m[12] = -dot(r, position);
+    view.m[13] = -dot(u, position);
+    view.m[14] = -dot(f, position);
+    view.m[15] = 1.0f;
+
+    return view;
 }
 
-Mat4 Camera::getViewMatrix() const
-{
-    return inverseRigid(transform);
+Mat4 Camera::getViewProjectionMatrix(int width, int height) const {
+    Mat4 proj = perspective(fov, float(width) / height, 0.1f, 160.0f);
+    return proj * getViewMatrix();
 }
 
-void Camera::move(const Vec3& d)
-{
-    Vec4 local = {d.x, d.y, d.z, 1.0f};
-    Vec4 world = transform * local;
+void Camera::rotate(const Vec3& worldAxis, float angleDeg) {
+    Quat invOrientation = {orientation.w, -orientation.x, -orientation.y, -orientation.z};
+    Vec3 localAxis = rotateVec(invOrientation, worldAxis);
 
-    transform.m[12] = world.x;
-    transform.m[13] = world.y;
-    transform.m[14] = world.z;
+    float rad = angleDeg * M_PI / 180.0f;
+    Quat delta = Quat::fromAxisAngle(localAxis, rad);
+
+    orientation = normalizeQ(orientation * delta);
 }
 
-void Camera::snapPosition()
-{
-    transform.m[12] = round(transform.m[12]*2)/2;
-    transform.m[13] = round(transform.m[13]*2)/2;
-    transform.m[14] = round(transform.m[14]*2)/2;
+void Camera::move(const Vec3& localDelta) {
+    position = position + getRight() * localDelta.x
+               + getUp() * localDelta.y
+               + getForward() * localDelta.z;
 }
 
-void Camera::snapRotation()
-{
-    Mat4 R = transform;
-
-    // extract basis vectors
-    Vec3 forward = normalize(Vec3{R.m[8], R.m[9], R.m[10]});
-
-    // snap forward direction (optional, coarse)
-    forward.x = round(forward.x);
-    forward.y = round(forward.y);
-    forward.z = round(forward.z);
-
-    forward = normalize(forward);
-
-    Vec3 up = {0,1,0};
-    Vec3 right = normalize(cross(forward, up));
-    up = cross(right, forward);
-
-    // rebuild rotation in matrix
-    R.m[0] = right.x;   R.m[4] = up.x;   R.m[8]  = forward.x;
-    R.m[1] = right.y;   R.m[5] = up.y;   R.m[9]  = forward.y;
-    R.m[2] = right.z;   R.m[6] = up.z;   R.m[10] = forward.z;
-
-    transform = R;
+void Camera::snapPosition() {
+    const float grid = 0.5f;
+    position.x = round(position.x / grid) * grid;
+    position.y = round(position.y / grid) * grid;
+    position.z = round(position.z / grid) * grid;
 }
 
-Vec3 Camera::getRight(const Mat4& m)
-{
-    return {m.m[0], m.m[1], m.m[2]};
-}
+void Camera::snapRotation() {
+    Vec3 forward = getForward();
 
-Vec3 Camera::getUp(const Mat4& m)
-{
-    return {m.m[4], m.m[5], m.m[6]};
-}
+    // Snap forward to nearest axis
+    Vec3 snappedForward;
+    float absX = fabs(forward.x), absY = fabs(forward.y), absZ = fabs(forward.z);
 
-Vec3 Camera::getForward(const Mat4& m)
-{
-    return {m.m[8], m.m[9], m.m[10]};
+    if (absX > absY && absX > absZ)
+        snappedForward = {forward.x > 0 ? 1.0f : -1.0f, 0, 0};
+    else if (absY > absX && absY > absZ)
+        snappedForward = {0, forward.y > 0 ? 1.0f : -1.0f, 0};
+    else
+        snappedForward = {0, 0, forward.z > 0 ? 1.0f : -1.0f};
+
+    // Build basis vectors
+    Vec3 worldUp = {0, 1, 0};
+    if (fabs(dot(snappedForward, worldUp)) > 0.99f)
+        worldUp = {0, 0, 1};
+
+    Vec3 snappedRight = normalize(cross(worldUp, snappedForward));
+    Vec3 snappedUp = cross(snappedForward, snappedRight);
+
+    // Snap roll
+    Vec3 currentUp = getUp();
+    float sinRoll = dot(cross(snappedUp, currentUp), snappedForward);
+    float cosRoll = dot(snappedUp, currentUp);
+    float roll = round(atan2(sinRoll, cosRoll) / (M_PI * 0.5f)) * (M_PI * 0.5f);
+
+    // Apply roll
+    float c = cos(roll), s = sin(roll);
+    Vec3 finalUp = snappedUp * c - snappedRight * s;
+    Vec3 finalRight = cross(finalUp, snappedForward);
+
+    // Convert to quaternion
+    Mat4 m;
+    m.m[0] = finalRight.x; m.m[4] = finalUp.x; m.m[8] = snappedForward.x;
+    m.m[1] = finalRight.y; m.m[5] = finalUp.y; m.m[9] = snappedForward.y;
+    m.m[2] = finalRight.z; m.m[6] = finalUp.z; m.m[10] = snappedForward.z;
+    m.m[15] = 1.0f;
+
+    orientation = mat4ToQuat(m);
 }

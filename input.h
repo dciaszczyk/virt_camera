@@ -40,3 +40,4 @@ const std::unordered_map<int, KeyAction> DEFAULT_KEY_BINDINGS = {
     {Qt::Key_Z, SNAP_ROTATION},
     {Qt::Key_X, SNAP_POSITION}
 };
+

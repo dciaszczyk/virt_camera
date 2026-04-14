@@ -1,9 +1,6 @@
 #include "GLWidget.h"
 #include <QCursor>
 #include <QGuiApplication>
-#include <QDebug>
-#include <iostream>
-
 
 GLWidget::GLWidget(QWidget* parent)
     : QOpenGLWidget(parent)
@@ -11,8 +8,6 @@ GLWidget::GLWidget(QWidget* parent)
 {
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(true);
-
-    camera.transform = identityMat4();
 
     updateTimer = new QTimer(this);
     connect(updateTimer, &QTimer::timeout, this, [this]() {
@@ -41,9 +36,6 @@ void GLWidget::initializeGL()
         return;
     }
 
-    // GPU-safe initial camera placement
-    camera.transform = identityMat4();
-    camera.transform.m[14] = 10;
     camera.fov = 60.0f;
 }
 
@@ -118,126 +110,60 @@ void GLWidget::mousePressEvent(QMouseEvent* e)
     }
 }
 
-//void GLWidget::MouseWheelEevent(QMouseEvent* e){
+void GLWidget::wheelEvent(QWheelEvent* e)
+{
+    float delta = e->angleDelta().y() / 120.0f;
 
-//}
+    camera.fov -= delta * 2.0f;
+    camera.fov = std::clamp(camera.fov, 1.0f, 159.0f);
+}
 
 void GLWidget::mouseMoveEvent(QMouseEvent* e)
 {
-    if (!mouseCaptured)
-        return;
+    if (!mouseCaptured) return;
 
     QPoint center = rect().center();
-    QPoint delta = e->pos() - center;
+    QPoint delta = QCursor::pos() - mapToGlobal(center);
 
-    float yawDelta   = -delta.x() * mouseSensitivity;
-    float pitchDelta = -delta.y() * mouseSensitivity;
+    float yaw   = -delta.x() * mouseSensitivity;
+    float pitch = -delta.y() * mouseSensitivity;
 
-    Vec3 up    = camera.getUp(camera.transform);
-    Vec3 right = camera.getRight(camera.transform);
-
-    Mat4 Ryaw   = rotationMatrix(up, yawDelta);
-    Mat4 Rpitch = rotationMatrix(right, pitchDelta);
-
-    camera.transform = camera.transform * Ryaw;
-    camera.transform = camera.transform * Rpitch;
+    camera.rotate(camera.getUp(), yaw);
+    Vec3 right = camera.getRight();
+    camera.rotate(right, pitch);
 
     QCursor::setPos(mapToGlobal(center));
 }
 
-inline void printCamera(const Mat4& m)
-{
-    std::cout
-        << "POS: "
-        << m.m[12] << ", "
-        << m.m[13] << ", "
-        << m.m[14] << "\n";
-
-    std::cout
-        << "RIGHT: "
-        << m.m[0] << ", "
-        << m.m[1] << ", "
-        << m.m[2] << "\n";
-
-    std::cout
-        << "UP: "
-        << m.m[4] << ", "
-        << m.m[5] << ", "
-        << m.m[6] << "\n";
-
-    std::cout
-        << "FWD: "
-        << m.m[8] << ", "
-        << m.m[9] << ", "
-        << m.m[10] << "\n\n";
-}
-
-inline void orthonormalize(Mat4& m)
-{
-    Vec3 right = {m.m[0], m.m[1], m.m[2]};
-    Vec3 up    = {m.m[4], m.m[5], m.m[6]};
-    Vec3 fwd   = {m.m[8], m.m[9], m.m[10]};
-
-    // Gram-Schmidt
-    fwd = normalize(fwd);
-
-    right = normalize(cross(up, fwd));
-    up    = cross(fwd, right);
-
-    // write back
-    m.m[0] = right.x; m.m[1] = right.y; m.m[2] = right.z;
-    m.m[4] = up.x;    m.m[5] = up.y;    m.m[6] = up.z;
-    m.m[8] = fwd.x;   m.m[9] = fwd.y;   m.m[10]= fwd.z;
-}
-
 void GLWidget::updateCamera(float dt)
 {
-    if (!mouseCaptured)
-        return;
+    if (!mouseCaptured) return;
 
     const float rotStep = rotSpeed * dt;
     const float moveStep = moveSpeed * dt;
 
-    // ROTATION (keyboard)
+    Vec3 right = camera.getRight();
+    Vec3 up = camera.getUp();
+    Vec3 forward = camera.getForward();
 
-    if (keys[ROLL_LEFT])
-        camera.transform = camera.transform * rotationMatrix(camera.getForward(camera.transform), rotStep);
+    if (keys[ROTATE_LEFT])  camera.rotate(up, rotStep);
+    if (keys[ROTATE_RIGHT]) camera.rotate(up, -rotStep);
+    if (keys[ROTATE_UP])    camera.rotate(right, rotStep);
+    if (keys[ROTATE_DOWN])  camera.rotate(right, -rotStep);
+    if (keys[ROLL_LEFT])    camera.rotate(forward, +rotStep);
+    if (keys[ROLL_RIGHT])   camera.rotate(forward, -rotStep);
 
-    if (keys[ROLL_RIGHT])
-        camera.transform = camera.transform * rotationMatrix(camera.getForward(camera.transform), -rotStep);
+    Vec3 move{0,0,0};
+    if (keys[MOVE_FORWARD]) move.z -= moveStep;
+    if (keys[MOVE_BACK])    move.z += moveStep;
+    if (keys[MOVE_LEFT])    move.x -= moveStep;
+    if (keys[MOVE_RIGHT])   move.x += moveStep;
+    if (keys[MOVE_UP])      move.y += moveStep;
+    if (keys[MOVE_DOWN])    move.y -= moveStep;
 
-    if (keys[ROTATE_UP])
-        camera.transform = camera.transform * rotationMatrix(camera.getRight(camera.transform), rotStep);
-
-    if (keys[ROTATE_DOWN])
-        camera.transform = camera.transform * rotationMatrix(camera.getRight(camera.transform), -rotStep);
-
-    if (keys[ROTATE_LEFT])
-        camera.transform = camera.transform * rotationMatrix(camera.getUp(camera.transform), rotStep);
-
-    if (keys[ROTATE_RIGHT])
-        camera.transform = camera.transform * rotationMatrix(camera.getUp(camera.transform), -rotStep);
-
-    // MOVEMENT (local → world via matrix)
-
-    Vec3 localMove{0,0,0};
-
-    if (keys[MOVE_FORWARD]) localMove.z -= moveStep;
-    if (keys[MOVE_BACK])    localMove.z += moveStep;
-    if (keys[MOVE_LEFT])    localMove.x -= moveStep;
-    if (keys[MOVE_RIGHT])   localMove.x += moveStep;
-    if (keys[MOVE_UP])      localMove.y += moveStep;
-    if (keys[MOVE_DOWN])    localMove.y -= moveStep;
-
-    Vec4 worldMove = camera.transform * Vec4{localMove.x, localMove.y, localMove.z, 0.0f};
-
-    camera.transform.m[12] += worldMove.x;
-    camera.transform.m[13] += worldMove.y;
-    camera.transform.m[14] += worldMove.z;
-
-    orthonormalize(camera.transform);
-
-    printCamera(camera.transform);
+    if (dot(move, move) > 0.0f) {
+        camera.move(move);
+    }
 }
 
 void GLWidget::captureMouse()

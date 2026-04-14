@@ -17,12 +17,12 @@ qt_add_executable(virt_camera
     GLWidget.h GLWidget.cpp
     model.txt
     mesh.h
-    mesh_loader.h
     math3d.h math3d.cpp
     camera.h camera.cpp
     mesh.frag mesh.vert
     input.h
     renderer.h renderer.cpp
+    meshLoader.h
 
 
 )
