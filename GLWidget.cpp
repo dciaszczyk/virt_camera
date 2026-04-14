@@ -118,9 +118,9 @@ void GLWidget::mousePressEvent(QMouseEvent* e)
     }
 }
 
-void GLWidget::MouseWheelEevent(QMouseEvent* e){
+//void GLWidget::MouseWheelEevent(QMouseEvent* e){
 
-}
+//}
 
 void GLWidget::mouseMoveEvent(QMouseEvent* e)
 {
