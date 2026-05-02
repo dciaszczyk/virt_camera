@@ -13,9 +13,12 @@ bool Renderer::initialize()
     if (!initShaders()) return false;
     if (!initBuffers()) return false;
 
-    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_POLYGON_OFFSET_LINE);
+    glPolygonOffset(-1.0f, -1.0f);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
     initialized = true;
     return true;
 }
@@ -75,7 +78,16 @@ void Renderer::render(const Camera& camera, int width, int height)
     program.setUniformValue("uColor", QVector3D(1.0f, 1.0f, 1.0f));
 
     QOpenGLVertexArrayObject::Binder binder(&vao);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
+
+    // Draw wireframe on top
+    program.setUniformValue("uColor", QVector3D(0.0f, 0.0f, 0.0f));
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
+
+    // Restore default
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 void Renderer::cleanup()
