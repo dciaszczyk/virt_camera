@@ -75,7 +75,7 @@ void Renderer::render(const Camera& camera, int width, int height)
     program.setUniformValue("uColor", QVector3D(1.0f, 1.0f, 1.0f));
 
     QOpenGLVertexArrayObject::Binder binder(&vao);
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_LINES, indexCount, GL_UNSIGNED_INT, nullptr);
 }
 
 void Renderer::cleanup()

@@ -32,13 +32,6 @@ public:
                 mesh.indices.push_back(a);
                 mesh.indices.push_back(b);
             }
-            else if (type == "f")
-            {
-                unsigned int a, b, c;
-                ss >> a >> b >> c;
-
-                mesh.indices.insert(mesh.indices.end(), {a, b, c});
-            }
         }
 
         return mesh;
