@@ -2,7 +2,7 @@
 #include "plane.h"
 #include "math3d.h"
 
-static const float EPS = 1e-5f;
+static const float epsilon = 1e-5f;
 
 struct Triangle {
     Vec3 v0, v1, v2;

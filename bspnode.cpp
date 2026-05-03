@@ -48,10 +48,10 @@ static void splitTriangle(const Triangle& t,
         float da = p.distance(a);
         float db = p.distance(b);
 
-        bool aFront = da >  EPS;
-        bool aBack  = da < -EPS;
-        bool bFront = db >  EPS;
-        bool bBack  = db < -EPS;
+        bool aFront = da >  epsilon;
+        bool aBack  = da < -epsilon;
+        bool bFront = db >  epsilon;
+        bool bBack  = db < -epsilon;
 
         if (!aBack) frontPoly.push_back(a);
         if (!aFront) backPoly.push_back(a);

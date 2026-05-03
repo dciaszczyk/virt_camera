@@ -23,7 +23,7 @@ void main()
     else
         color = mix(midColor, farColor, (dCam - 0.5) * 2.0);
 
-    color = mix(vec3(0.0), color, edgeFactor);
+    color = mix(vec3(1.0), color, edgeFactor);
 
     FragColor = vec4(color, 1.0);
 }

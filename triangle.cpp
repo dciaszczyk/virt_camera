@@ -16,8 +16,8 @@ Side classifyTriangle(const Plane& p, const Triangle& t)
     float d1 = p.distance(t.v1);
     float d2 = p.distance(t.v2);
 
-    bool anyFront = (d0 > EPS) || (d1 > EPS) || (d2 > EPS);
-    bool anyBack  = (d0 < -EPS) || (d1 < -EPS) || (d2 < -EPS);
+    bool anyFront = (d0 > epsilon) || (d1 > epsilon) || (d2 > epsilon);
+    bool anyBack  = (d0 < -epsilon) || (d1 < -epsilon) || (d2 < -epsilon);
 
     if (anyFront && anyBack) return Side::Spanning;
     if (anyFront)            return Side::Front;
