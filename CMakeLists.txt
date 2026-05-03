@@ -23,8 +23,10 @@ qt_add_executable(virt_camera
     input.h
     renderer.h renderer.cpp
     meshLoader.h
-
-
+    triangle.h triangle.cpp
+    plane.h plane.cpp
+    bspnode.h bspnode.cpp
+    bsp.h bsp.cpp
 )
 
 configure_file(${CMAKE_SOURCE_DIR}/model.txt

@@ -4,6 +4,7 @@
 #include <QOpenGLBuffer>
 #include <QOpenGLFunctions>
 #include "camera.h"
+#include "bsp.h"
 
 class Renderer : protected QOpenGLFunctions
 {
@@ -13,6 +14,7 @@ public:
     void cleanup();
 
 private:
+    BSPTree bsp;
     bool initShaders();
     bool initBuffers();
 

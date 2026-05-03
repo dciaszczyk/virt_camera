@@ -13,8 +13,6 @@ bool Renderer::initialize()
     if (!initShaders()) return false;
     if (!initBuffers()) return false;
 
-    glEnable(GL_POLYGON_OFFSET_LINE);
-    glPolygonOffset(-1.0f, -1.0f);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     glDisable(GL_DEPTH_TEST);
@@ -63,6 +61,21 @@ bool Renderer::initBuffers()
     program.enableAttributeArray(0);
     program.setAttributeBuffer(0, GL_FLOAT, 0, 3, sizeof(Vec3));
 
+    std::vector<Triangle> triangles;
+
+    for (size_t i = 0; i < mesh.indices.size(); i += 3)
+    {
+        Triangle t;
+        t.v0 = mesh.vertices[mesh.indices[i]];
+        t.v1 = mesh.vertices[mesh.indices[i+1]];
+        t.v2 = mesh.vertices[mesh.indices[i+2]];
+        t.computePlane();
+
+        triangles.push_back(t);
+    }
+
+    bsp.build(triangles);
+
     return true;
 }
 
@@ -75,19 +88,27 @@ void Renderer::render(const Camera& camera, int width, int height)
     program.bind();
     GLint loc = glGetUniformLocation(program.programId(), "MVP");
     glUniformMatrix4fv(loc, 1, GL_FALSE, camera.getViewProjectionMatrix(width,height).m);
-    program.setUniformValue("uColor", QVector3D(1.0f, 1.0f, 1.0f));
+
+    auto sortedTriangles = bsp.getSorted(camera.position);
 
     QOpenGLVertexArrayObject::Binder binder(&vao);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
+    std::vector<Vec3> buffer;
 
-    // Draw wireframe on top
-    program.setUniformValue("uColor", QVector3D(0.0f, 0.0f, 0.0f));
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, nullptr);
+    for (const auto& t : sortedTriangles)
+    {
+        buffer.push_back(t.v0);
+        buffer.push_back(t.v1);
+        buffer.push_back(t.v2);
+    }
 
-    // Restore default
+    vbo.bind();
+    vbo.allocate(buffer.data(), buffer.size() * sizeof(Vec3));
+
+    program.setUniformValue("uCameraPos",
+                            QVector3D(camera.position.x, camera.position.y, camera.position.z));
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawArrays(GL_TRIANGLES, 0, buffer.size());
+
 }
 
 void Renderer::cleanup()
