@@ -36,7 +36,10 @@ private:
     bool mouseCaptured = false;
     QPoint lastMousePos;
 
-    Camera camera;
+    Camera camBsp;
+    Camera camView;
+    Camera activeCam;
+    int activeView = 0;
 
     Renderer renderer;
 

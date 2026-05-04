@@ -79,7 +79,7 @@ bool Renderer::initBuffers()
     return true;
 }
 
-void Renderer::render(const Camera& camera, int width, int height)
+void Renderer::render(const Camera& camView, const Camera& camBsp, int width, int height)
 {
     if (!initialized) return;
 
@@ -87,9 +87,9 @@ void Renderer::render(const Camera& camera, int width, int height)
 
     program.bind();
     GLint loc = glGetUniformLocation(program.programId(), "MVP");
-    glUniformMatrix4fv(loc, 1, GL_FALSE, camera.getViewProjectionMatrix(width,height).m);
+    glUniformMatrix4fv(loc, 1, GL_FALSE, camView.getViewProjectionMatrix(width,height).m);
 
-    auto sortedTriangles = bsp.getSorted(camera.position);
+    auto sortedTriangles = bsp.getSorted(camBsp.position);
 
     QOpenGLVertexArrayObject::Binder binder(&vao);
     std::vector<Vec3> buffer;
@@ -105,10 +105,9 @@ void Renderer::render(const Camera& camera, int width, int height)
     vbo.allocate(buffer.data(), buffer.size() * sizeof(Vec3));
 
     program.setUniformValue("uCameraPos",
-                            QVector3D(camera.position.x, camera.position.y, camera.position.z));
+                            QVector3D(camView.position.x, camView.position.y, camView.position.z));
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glDrawArrays(GL_TRIANGLES, 0, buffer.size());
-
 }
 
 void Renderer::cleanup()

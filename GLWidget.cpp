@@ -27,22 +27,20 @@ void GLWidget::initializeGL()
 {
     initializeOpenGLFunctions();
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_CULL_FACE);
-
     if (!renderer.initialize()) {
         qDebug() << "Failed to initialize renderer";
         return;
     }
 
-    camera.fov = 60.0f;
 }
 
 void GLWidget::paintGL()
 {
+    if(activeView == 0){
+        camBsp = activeCam;
+    } else camView = activeCam;
     updateCamera(0.016f);
-    renderer.render(camera, width(), height());
+    renderer.render(activeCam, camBsp, width(), height());
 }
 
 void GLWidget::resizeGL(int w, int h)
@@ -74,11 +72,16 @@ void GLWidget::keyPressEvent(QKeyEvent* e)
         }
 
         case SNAP_POSITION:
-            camera.snapPosition();
+            activeCam.snapPosition();
             break;
 
         case SNAP_ROTATION:
-            camera.snapRotation();
+            activeCam.snapRotation();
+            break;
+
+        case SWITCH_CAM:
+            activeView = (activeView + 1) % 2;
+            activeCam = (activeView == 0) ? camBsp : camView;
             break;
 
         default:
@@ -114,8 +117,8 @@ void GLWidget::wheelEvent(QWheelEvent* e)
 {
     float delta = e->angleDelta().y() / 120.0f;
 
-    camera.fov -= delta * 2.0f;
-    camera.fov = std::clamp(camera.fov, 1.0f, 159.0f);
+    activeCam.fov -= delta * 2.0f;
+    activeCam.fov = std::clamp( activeCam.fov, 1.0f, 159.0f);
 }
 
 void GLWidget::mouseMoveEvent(QMouseEvent* e)
@@ -128,9 +131,9 @@ void GLWidget::mouseMoveEvent(QMouseEvent* e)
     float yaw   = -delta.x() * mouseSensitivity;
     float pitch = -delta.y() * mouseSensitivity;
 
-    camera.rotate(camera.getUp(), yaw);
-    Vec3 right = camera.getRight();
-    camera.rotate(right, pitch);
+    activeCam.rotate( activeCam.getUp(), yaw);
+    Vec3 right = activeCam.getRight();
+    activeCam.rotate(right, pitch);
 
     QCursor::setPos(mapToGlobal(center));
 }
@@ -142,16 +145,16 @@ void GLWidget::updateCamera(float dt)
     const float rotStep = rotSpeed * dt;
     const float moveStep = moveSpeed * dt;
 
-    Vec3 right = camera.getRight();
-    Vec3 up = camera.getUp();
-    Vec3 forward = camera.getForward();
+    Vec3 right = activeCam.getRight();
+    Vec3 up = activeCam.getUp();
+    Vec3 forward = activeCam.getForward();
 
-    if (keys[ROTATE_LEFT])  camera.rotate(up, rotStep);
-    if (keys[ROTATE_RIGHT]) camera.rotate(up, -rotStep);
-    if (keys[ROTATE_UP])    camera.rotate(right, rotStep);
-    if (keys[ROTATE_DOWN])  camera.rotate(right, -rotStep);
-    if (keys[ROLL_LEFT])    camera.rotate(forward, rotStep);
-    if (keys[ROLL_RIGHT])   camera.rotate(forward, -rotStep);
+    if (keys[ROTATE_LEFT])  activeCam.rotate(up, rotStep);
+    if (keys[ROTATE_RIGHT]) activeCam.rotate(up, -rotStep);
+    if (keys[ROTATE_UP])    activeCam.rotate(right, rotStep);
+    if (keys[ROTATE_DOWN])  activeCam.rotate(right, -rotStep);
+    if (keys[ROLL_LEFT])    activeCam.rotate(forward, rotStep);
+    if (keys[ROLL_RIGHT])   activeCam.rotate(forward, -rotStep);
 
     Vec3 move{0,0,0};
     if (keys[MOVE_FORWARD]) move.z -= moveStep;
@@ -162,7 +165,7 @@ void GLWidget::updateCamera(float dt)
     if (keys[MOVE_DOWN])    move.y -= moveStep;
 
     if (dot(move, move) > 0.0f) {
-        camera.move(move);
+        activeCam.move(move);
     }
 }
 

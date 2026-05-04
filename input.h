@@ -19,7 +19,8 @@ enum KeyAction
     SCREENSHOT,
     SNAP_POSITION,
     SNAP_ROTATION,
-    COUNT
+    COUNT,
+    SWITCH_CAM
 };
 
 const std::unordered_map<int, KeyAction> DEFAULT_KEY_BINDINGS = {
@@ -37,6 +38,7 @@ const std::unordered_map<int, KeyAction> DEFAULT_KEY_BINDINGS = {
     {Qt::Key_L, ROTATE_RIGHT},
     {Qt::Key_P, SCREENSHOT},
     {Qt::Key_Z, SNAP_ROTATION},
-    {Qt::Key_X, SNAP_POSITION}
+    {Qt::Key_X, SNAP_POSITION},
+    {Qt::Key_C, SWITCH_CAM}
 };
 

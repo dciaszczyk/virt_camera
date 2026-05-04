@@ -10,7 +10,7 @@ class Renderer : protected QOpenGLFunctions
 {
 public:
     bool initialize();
-    void render(const Camera& camera, int width, int height);
+    void render(const Camera& camView, const Camera& camBsp, int width, int height);
     void cleanup();
 
 private:
