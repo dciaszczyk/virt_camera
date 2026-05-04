@@ -14,8 +14,8 @@ void main()
     float dCam = clamp(vDist / 10.0, 0.0, 1.0);
 
     vec3 nearColor = vec3(0.0, 0.0, 1.0);
-    vec3 midColor  = vec3(0.0, 1.0, 0.0);
-    vec3 farColor  = vec3(1.0, 0.0, 0.0);
+    vec3 midColor  = vec3(0.0, 1.0, 0.0); //0 0 0 daje czarne - sam wireframe
+    vec3 farColor  = vec3(1.0, 0.0, 0.0); //ustawienie na  1 1 1 daje białe figury - TYLKO DO PREZENTACJI
 
     vec3 color;
     if (dCam < 0.5)

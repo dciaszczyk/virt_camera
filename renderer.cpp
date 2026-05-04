@@ -108,6 +108,9 @@ void Renderer::render(const Camera& camView, const Camera& camBsp, int width, in
                             QVector3D(camView.position.x, camView.position.y, camView.position.z));
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glDrawArrays(GL_TRIANGLES, 0, buffer.size());
+
+    //glDrawArrays(GL_LINES, 0, buffer.size()); - NIEPOPRAWNY WIREFRAME - TYLKO DO POKAZU
+
 }
 
 void Renderer::cleanup()
