@@ -20,7 +20,7 @@ Mat4 Camera::getViewMatrix() const {
 }
 
 Mat4 Camera::getViewProjectionMatrix(int width, int height) const {
-    Mat4 proj = perspective(fov, float(width) / height, 0.1f, 160.0f);
+    Mat4 proj = perspective(fov, float(width) / height, 0.001f, 160.0f);
     return proj * getViewMatrix();
 }
 
