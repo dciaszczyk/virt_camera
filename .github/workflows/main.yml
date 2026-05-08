@@ -43,6 +43,7 @@ jobs:
       - name: Bundle Flatpak
         run: |
           flatpak-builder \
+            --force-clean \
             --user \
             --repo=repo \
             build-dir \
