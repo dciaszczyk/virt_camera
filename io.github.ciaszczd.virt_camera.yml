@@ -1,0 +1,25 @@
+app-id: io.github.ciaszczd.virt_camera
+
+runtime: org.kde.Platform
+runtime-version: "6.10"
+
+sdk: org.kde.Sdk
+
+command: virt_camera
+
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+
+modules:
+  - name: virt_camera
+    buildsystem: cmake-ninja
+
+    config-opts:
+      - -DCMAKE_BUILD_TYPE=Release
+
+    sources:
+      - type: dir
+        path: .
