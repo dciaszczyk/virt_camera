@@ -1,0 +1,58 @@
+name: Build Flatpak
+
+on:
+  push:
+    branches: [ main ]
+
+  pull_request:
+
+  workflow_dispatch:
+
+jobs:
+  build-flatpak:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flatpak
+        run: |
+          sudo apt update
+          sudo apt install -y flatpak flatpak-builder
+
+      - name: Add Flathub
+        run: |
+          flatpak remote-add --if-not-exists flathub \
+            https://flathub.org/repo/flathub.flatpakrepo
+
+      - name: Install KDE runtime
+        run: |
+          flatpak install -y flathub \
+            org.kde.Platform//6.10 \
+            org.kde.Sdk//6.10
+
+      - name: Build Flatpak
+        run: |
+          flatpak-builder \
+            --force-clean \
+            build-dir \
+            io.github.ciaszczd.virt_camera.yml
+
+      - name: Bundle Flatpak
+        run: |
+          flatpak-builder \
+            --repo=repo \
+            build-dir \
+            io.github.ciaszczd.virt_camera.yml
+
+          flatpak build-bundle \
+            repo \
+            virt_camera.flatpak \
+            io.github.ciaszczd.virt_camera
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: virt_camera
+          path: virt_camera.flatpak
