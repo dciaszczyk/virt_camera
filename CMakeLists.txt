@@ -48,18 +48,3 @@ target_link_libraries(virt_camera
         Qt6::Gui
         Qt6::OpenGLWidgets
 )
-
-include(GNUInstallDirs)
-
-install(TARGETS virt_camera
-    BUNDLE  DESTINATION .
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
-qt_generate_deploy_app_script(
-    TARGET virt_camera
-    OUTPUT_SCRIPT deploy_script
-    NO_UNSUPPORTED_PLATFORM_ERROR
-)
-install(SCRIPT ${deploy_script})
