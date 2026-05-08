@@ -35,6 +35,7 @@ jobs:
       - name: Build Flatpak
         run: |
           flatpak-builder \
+            --user \
             --force-clean \
             build-dir \
             io.github.ciaszczd.virt_camera.yml
@@ -42,6 +43,7 @@ jobs:
       - name: Bundle Flatpak
         run: |
           flatpak-builder \
+            --user \
             --repo=repo \
             build-dir \
             io.github.ciaszczd.virt_camera.yml
