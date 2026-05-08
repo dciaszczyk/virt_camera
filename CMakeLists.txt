@@ -48,3 +48,10 @@ target_link_libraries(virt_camera
         Qt6::Gui
         Qt6::OpenGLWidgets
 )
+
+install(TARGETS virt_camera
+    BUNDLE  DESTINATION .
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
