@@ -1,0 +1,1 @@
+virtual camera supporting free movement in 3D space, rendering shapes with triangles, and ordering of these triangles, with algorithms for calcuating these things implemented with no use of openGL, only passing the resulting matrices to render.
